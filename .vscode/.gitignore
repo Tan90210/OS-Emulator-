@@ -1,0 +1,47 @@
+# Node modules (if you use npm/yarn)
+
+node_modules/
+
+# Logs
+
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+
+.DS_Store
+Thumbs.db
+
+# Environment files
+
+.env
+.env.*
+
+# VSCode (ignore all by default)
+
+.vscode/*
+
+# Allow shared VSCode configs (optional)
+
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+
+# Build output
+
+dist/
+build/
+out/
+
+# Cache / temp
+
+.cache/
+*.tmp
+*.temp
+
+# Coverage reports
+
+coverage/
