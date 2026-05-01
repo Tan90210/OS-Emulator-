@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page Replacement Simulator</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-label="Page replacement simulator">
+        <aside class="controls-panel">
+          <div class="brand-block">
+            <p class="eyebrow">OS memory lab</p>
+            <h1>Page Replacement Simulator</h1>
+          </div>
+
+          <div class="algorithm-strip" id="algorithm-strip" aria-label="Available algorithms"></div>
+
+          <form id="sim-form" class="control-form">
+            <label class="field">
+              <span>Algorithm</span>
+              <select id="algorithm" name="algorithm"></select>
+            </label>
+
+            <label class="field">
+              <span>Frames</span>
+              <input id="frame-count" name="frame-count" type="number" min="1" max="12" value="3" />
+            </label>
+
+            <label class="field">
+              <span>Reference string</span>
+              <textarea id="reference-string" name="reference-string" rows="5">7, 0, 1, 2, 0, 3, 0, 4</textarea>
+            </label>
+
+            <div class="button-row">
+              <button class="primary-button" type="submit">Run</button>
+              <button class="ghost-button" id="reset-demo" type="button">Reset</button>
+            </div>
+          </form>
+
+          <div class="stats-grid" id="stats-grid" aria-label="Simulation statistics"></div>
+        </aside>
+
+        <section class="visual-panel">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow" id="run-label">LRU · 3 frames</p>
+              <h2 id="step-title">Step 1 of 8</h2>
+            </div>
+            <div class="step-badge" id="step-badge">Fault</div>
+          </header>
+
+          <section class="summary-band" id="summary-band" aria-label="Run summary"></section>
+
+          <section class="current-step" aria-label="Current simulation step">
+            <div class="requested-page">
+              <span>Page</span>
+              <strong id="current-page">7</strong>
+            </div>
+            <div class="frame-stack" id="frame-stack"></div>
+            <div class="step-notes" id="step-notes"></div>
+          </section>
+
+          <section class="player" aria-label="Playback controls">
+            <button class="icon-button" id="prev-step" type="button" aria-label="Previous step">‹</button>
+            <button class="icon-button play-button" id="play-pause" type="button" aria-label="Play simulation">▶</button>
+            <button class="icon-button" id="next-step" type="button" aria-label="Next step">›</button>
+            <input id="step-range" type="range" min="0" value="0" />
+          </section>
+
+          <section class="timeline-wrap" aria-label="Simulation timeline">
+            <div class="timeline" id="timeline"></div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
