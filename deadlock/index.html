@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Deadlock Simulator — OS Lab</title>
+  <meta name="description" content="Interactive deadlock detection via RAG and avoidance via Banker's Algorithm."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="nav-left">
+      <p class="eyebrow">OS Process Lab</p>
+      <h1>Deadlock Simulator</h1>
+    </div>
+    <span class="nav-badge" id="nav-label">RAG_DEADLOCK</span>
+  </nav>
+
+  <!-- ── TABS ── -->
+  <div class="module-tabs">
+    <button class="tab-btn tab-rag active" id="tab-rag" onclick="switchTab('rag')">⊗ RAG Detection</button>
+    <button class="tab-btn tab-bank" id="tab-bank" onclick="switchTab('bank')">⊕ Banker's Algorithm</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PANEL 1 — RAG DEADLOCK DETECTION
+  ══════════════════════════════════════ -->
+  <div class="module-panel active" id="panel-rag">
+    <div class="workspace">
+
+      <!-- LEFT: config -->
+      <aside class="config-panel">
+
+        <section class="config-section">
+          <p class="section-label">Graph Configuration</p>
+          <div class="count-row">
+            <div class="count-block">
+              <span class="count-label">Processes</span>
+              <div class="count-ctrl">
+                <button class="count-btn" id="r-proc-dec">−</button>
+                <strong class="count-val" id="r-proc-count">3</strong>
+                <button class="count-btn" id="r-proc-inc">+</button>
+              </div>
+            </div>
+            <div class="count-block">
+              <span class="count-label">Resources</span>
+              <div class="count-ctrl">
+                <button class="count-btn" id="r-res-dec">−</button>
+                <strong class="count-val" id="r-res-count">2</strong>
+                <button class="count-btn" id="r-res-inc">+</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="config-section">
+          <p class="section-label">Request Edge <span class="edge-dir req-dir">P → R</span></p>
+          <div class="edge-row">
+            <span class="edge-prefix">P</span>
+            <input class="edge-input" id="req-p" type="number" min="0" placeholder="0"/>
+            <span class="edge-arrow req-arrow">→</span>
+            <span class="edge-prefix">R</span>
+            <input class="edge-input" id="req-r" type="number" min="0" placeholder="0"/>
+            <button class="add-btn req-add-btn" id="req-add">Add</button>
+          </div>
+          <div class="tag-wrap" id="req-tags"></div>
+        </section>
+
+        <section class="config-section">
+          <p class="section-label">Allocation Edge <span class="edge-dir alloc-dir">R → P</span></p>
+          <div class="edge-row">
+            <span class="edge-prefix">R</span>
+            <input class="edge-input" id="alloc-r" type="number" min="0" placeholder="0"/>
+            <span class="edge-arrow alloc-arrow">→</span>
+            <span class="edge-prefix">P</span>
+            <input class="edge-input" id="alloc-p" type="number" min="0" placeholder="0"/>
+            <button class="add-btn alloc-add-btn" id="alloc-add">Add</button>
+          </div>
+          <div class="tag-wrap" id="alloc-tags"></div>
+        </section>
+
+        <section class="config-section">
+          <p class="section-label">Presets</p>
+          <div class="preset-stack">
+            <button class="preset-btn danger-preset" id="r-preset-dl">⚠ Deadlock Scenario</button>
+            <button class="preset-btn safe-preset"   id="r-preset-safe">✓ Safe Scenario</button>
+            <button class="preset-btn ghost-preset"  id="r-preset-clear">✕ Clear Graph</button>
+          </div>
+        </section>
+
+        <section class="config-section">
+          <p class="section-label">Speed</p>
+          <div class="speed-row" id="r-speed-btns">
+            <button class="speed-btn" data-speed="1200">0.5×</button>
+            <button class="speed-btn active" data-speed="600">1×</button>
+            <button class="speed-btn" data-speed="300">2×</button>
+            <button class="speed-btn" data-speed="100">5×</button>
+          </div>
+        </section>
+
+        <section class="config-section">
+          <div class="btn-stack">
+            <button class="primary-btn rag-btn" id="r-runBtn">Run Detection</button>
+            <button class="primary-btn anim-btn" id="r-animBtn">▶ Animate DFS</button>
+            <button class="ghost-btn" id="r-resetBtn">Reset</button>
+          </div>
+        </section>
+
+        <section class="config-section">
+          <p class="section-label">Statistics</p>
+          <div class="stats-grid">
+            <div class="stat">
+              <span>Nodes</span>
+              <strong id="r-stat-nodes">5</strong>
+            </div>
+            <div class="stat">
+              <span>Edges</span>
+              <strong id="r-stat-edges">0</strong>
+            </div>
+            <div class="stat stat-wide">
+              <span>Cycle</span>
+              <strong class="stat-value" id="r-stat-cycle">—</strong>
+            </div>
+          </div>
+        </section>
+
+      </aside>
+
+      <!-- RIGHT: visualization -->
+      <main class="viz-panel">
+
+        <header class="viz-topbar">
+          <div>
+            <p class="eyebrow">Resource Allocation Graph</p>
+            <h2>DFS Cycle Detection</h2>
+          </div>
+          <span class="status-badge" id="r-rag-status">IDLE</span>
+        </header>
+
+        <div class="result-banner" id="r-banner">
+          <span class="result-icon" id="r-banner-icon"></span>
+          <div>
+            <div class="result-title" id="r-banner-title"></div>
+            <div class="result-detail" id="r-banner-detail"></div>
+          </div>
+        </div>
+
+        <div class="viz-body">
+
+          <div class="viz-row">
+            <div class="viz-card canvas-card">
+              <p class="card-label">Graph Canvas</p>
+              <div class="canvas-wrap">
+                <canvas id="ragCanvas"></canvas>
+              </div>
+            </div>
+            <div class="viz-card nodes-card">
+              <p class="card-label">Process Nodes</p>
+              <div class="process-list" id="r-proc-nodes"></div>
+              <p class="card-label" style="margin-top:10px;">Resource Nodes</p>
+              <div class="process-list" id="r-res-nodes"></div>
+            </div>
+          </div>
+
+          <div class="viz-row three-col">
+            <div class="viz-card">
+              <p class="card-label">Adjacency Matrix</p>
+              <div id="r-matrix-wrap"></div>
+            </div>
+            <div class="viz-card">
+              <p class="card-label">DFS Traversal Trace</p>
+              <div class="trace-box" id="r-dfs-trace">
+                <div class="dfs-step"><span class="dfs-step-num">—</span> Awaiting run…</div>
+              </div>
+            </div>
+            <div class="viz-card">
+              <p class="card-label">DFS Stack (recStack[])</p>
+              <div class="queue-box" id="r-dfs-stack">
+                <span class="queue-empty">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="viz-card terminal-card">
+            <div class="terminal-header">
+              <p class="card-label">Terminal</p>
+              <button class="clear-btn" id="r-clearBtn">Clear</button>
+            </div>
+            <div class="terminal" id="r-terminal">
+              <div class="log-muted">&gt; RAG detector ready.</div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PANEL 2 — BANKER'S ALGORITHM
+  ══════════════════════════════════════ -->
+  <div class="module-panel" id="panel-bank">
+    <div class="workspace">
+
+      <!-- LEFT: config -->
+      <aside class="config-panel">
+
+        <section class="config-section">
+          <p class="section-label">System Configuration</p>
+          <div class="count-row">
+            <div class="count-block">
+              <span class="count-label">Processes</span>
+              <div class="count-ctrl">
+                <button class="count-btn" id="b-proc-dec">−</button>
+                <strong class="count-val" id="b-proc-count">4</strong>
+                <button class="count-btn" id="b-proc-inc">+</button>
+              </div>
+            </div>
+            <div class="count-block">
+              <span class="count-label">Res. Types</span>
+              <div class="count-ctrl">
+                <button class="count-btn" id="b-res-dec">−</button>
+                <strong class="count-val" id="b-res-count">3</strong>
+                <button class="count-btn" id="b-res-inc">+</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="config-section">
+          <p class="section-label">Available Resources</p>
+          <div id="b-avail-inputs"></div>
+        </section>
+
+        <section class="config-section matrix-section">
+          <p class="section-label">Allocation Matrix</p>
+          <div class="matrix-input-wrap" id="b-alloc-inputs"></div>
+        </section>
+
+        <section class="config-section matrix-section">
+          <p class="section-label">Max Demand Matrix</p>
+          <div class="matrix-input-wrap" id="b-max-inputs"></div>
+        </section>
+
+        <section class="config-section">
+          <p class="section-label">Presets</p>
+          <div class="preset-stack">
+            <button class="preset-btn safe-preset"   id="b-preset-classic">✓ Classic (Safe)</button>
+            <button class="preset-btn danger-preset"  id="b-preset-unsafe">⚠ Unsafe Scenario</button>
+            <button class="preset-btn ghost-preset"   id="b-preset-clear">✕ Clear Matrices</button>
+          </div>
+        </section>
+
+        <section class="config-section">
+          <p class="section-label">Speed</p>
+          <div class="speed-row" id="b-speed-btns">
+            <button class="speed-btn" data-speed="1400">0.5×</button>
+            <button class="speed-btn active" data-speed="700">1×</button>
+            <button class="speed-btn" data-speed="350">2×</button>
+            <button class="speed-btn" data-speed="120">5×</button>
+          </div>
+        </section>
+
+        <section class="config-section">
+          <div class="btn-stack">
+            <button class="primary-btn bank-btn" id="b-runBtn">Run Safety Check</button>
+            <button class="primary-btn anim-btn" id="b-animBtn">▶ Animate</button>
+            <button class="ghost-btn" id="b-resetBtn">Reset</button>
+          </div>
+        </section>
+
+        <section class="config-section">
+          <p class="section-label">Statistics</p>
+          <div class="stats-grid">
+            <div class="stat">
+              <span>Processes</span>
+              <strong id="b-stat-procs">4</strong>
+            </div>
+            <div class="stat">
+              <span>Completed</span>
+              <strong class="stat-value green" id="b-stat-done">0</strong>
+            </div>
+            <div class="stat stat-wide">
+              <span>Steps</span>
+              <strong id="b-stat-step">—</strong>
+            </div>
+          </div>
+        </section>
+
+      </aside>
+
+      <!-- RIGHT: visualization -->
+      <main class="viz-panel">
+
+        <header class="viz-topbar">
+          <div>
+            <p class="eyebrow">Banker's Algorithm</p>
+            <h2>Deadlock Avoidance — Safety Check</h2>
+          </div>
+          <span class="status-badge" id="b-work-status">IDLE</span>
+        </header>
+
+        <div class="result-banner" id="b-banner">
+          <span class="result-icon" id="b-banner-icon"></span>
+          <div>
+            <div class="result-title" id="b-banner-title"></div>
+            <div class="result-detail" id="b-banner-detail"></div>
+          </div>
+        </div>
+
+        <div class="viz-body">
+
+          <div class="viz-row">
+            <div class="viz-card">
+              <p class="card-label">Safe Sequence</p>
+              <div class="queue-box seq-box" id="b-safe-seq">
+                <span class="queue-empty">—</span>
+              </div>
+            </div>
+            <div class="viz-card">
+              <p class="card-label">Work Vector (Available)</p>
+              <div class="avail-bar-wrap" id="b-work-chips"></div>
+            </div>
+          </div>
+
+          <div class="viz-row">
+            <div class="viz-card">
+              <p class="card-label">Process States</p>
+              <div class="process-list" id="b-proc-cards"></div>
+            </div>
+            <div class="viz-card">
+              <p class="card-label">Need Matrix (Max − Alloc)</p>
+              <div class="display-matrix" id="b-need-matrix"></div>
+              <p class="card-label" style="margin-top:12px;">Allocation Matrix</p>
+              <div class="display-matrix" id="b-alloc-display"></div>
+            </div>
+          </div>
+
+          <div class="viz-card">
+            <p class="card-label">Step Log</p>
+            <div class="trace-box" id="b-step-log">
+              <div class="step-log-row log-muted">— Awaiting safety check…</div>
+            </div>
+          </div>
+
+          <div class="viz-card terminal-card">
+            <div class="terminal-header">
+              <p class="card-label">Terminal</p>
+              <button class="clear-btn" id="b-clearBtn">Clear</button>
+            </div>
+            <div class="terminal" id="b-terminal">
+              <div class="log-muted">&gt; Banker's algorithm ready.</div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+</div><!-- /app-shell -->
+
+<script src="script.js"></script>
+</body>
+</html>
