@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Memory Management — OS Emulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .mem-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .mem-block {
+      display: flex;
+      flex-direction: column;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel-soft);
+      overflow: hidden;
+      width: 130px;
+      min-height: 140px;
+      position: relative;
+    }
+    .mem-header {
+      background: var(--line);
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-align: center;
+      padding: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .mem-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      background: #f8fafc;
+    }
+    .mem-allocated {
+      background: var(--accent-soft);
+      border-top: 2px solid var(--accent);
+      color: var(--accent-strong);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 800;
+      min-height: 20px;
+    }
+    .mem-frag {
+      font-size: 0.65rem;
+      color: var(--warn);
+      text-align: center;
+      padding: 4px 0;
+      font-weight: 700;
+    }
+    
+    .stat-box { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: var(--panel-soft); border: 1px solid var(--line); border-radius: var(--radius); align-items: center; justify-content: center; }
+    .stat-val { font-size: 1.4rem; font-weight: 900; color: var(--accent); }
+    .stat-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="nav-left">
+      <p class="eyebrow"><a href="../index.html" style="color:inherit;text-decoration:none;">← Dashboard</a></p>
+      <h1>Memory Management (Fragmentation)</h1>
+    </div>
+    <span class="nav-badge" id="nav-label">MODULE_05</span>
+  </nav>
+
+  <!-- ── WORKSPACE ── -->
+  <div class="workspace">
+
+    <!-- LEFT: config -->
+    <aside class="config-panel">
+
+      <section class="config-section">
+        <p class="section-label">Total System Memory</p>
+        <div class="edge-row">
+          <input type="number" id="total-mem" class="edge-input" placeholder="e.g. 1000" value="1000" style="flex:1;">
+          <span style="font-size:0.8rem; font-weight:600; color:var(--muted); margin-left:8px;">KB</span>
+        </div>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Memory Blocks</p>
+        <div class="edge-row" style="margin-bottom: 8px;">
+          <input type="number" id="block-size" class="edge-input" placeholder="Size (KB)" style="flex:1;">
+          <button class="add-btn req-add-btn" id="add-block-btn" style="background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent);">Add Block</button>
+        </div>
+        <div class="tag-wrap" id="block-tags"></div>
+        <p style="font-size:0.7rem; color:var(--muted); margin-top:5px;">Remaining Unpartitioned: <strong id="unpartitioned-mem">1000</strong> KB</p>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Process Files</p>
+        <div class="edge-row" style="margin-bottom: 8px;">
+          <input type="text" id="proc-name" class="edge-input" placeholder="Name" style="flex:1;">
+          <input type="number" id="proc-size" class="edge-input" placeholder="KB" style="width:60px;">
+          <button class="add-btn alloc-add-btn" id="add-proc-btn">Add File</button>
+        </div>
+        <div class="tag-wrap" id="proc-tags"></div>
+      </section>
+
+      <section class="config-section">
+        <div class="btn-stack">
+          <button class="primary-btn anim-btn" id="run-btn">▶ Calculate Fragmentation</button>
+          <button class="ghost-btn" id="clear-btn" style="color:var(--danger); border-color:var(--danger-border);">Reset</button>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- RIGHT: visualization -->
+    <main class="viz-panel">
+
+      <header class="viz-topbar">
+        <div>
+          <p class="eyebrow">Visualization</p>
+          <h2 id="viz-title">Fragmentation Calculator</h2>
+        </div>
+        <span class="status-badge" id="sim-status">IDLE</span>
+      </header>
+
+      <div class="viz-body">
+        
+        <!-- Statistics -->
+        <div class="viz-row" style="grid-template-columns: 1fr 1fr;">
+          <div class="stat-box">
+            <span class="stat-val" id="stat-int" style="color:var(--warn)">0 KB</span>
+            <span class="stat-label">Total Internal Fragmentation</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-ext" style="color:var(--danger)">0 KB</span>
+            <span class="stat-label">Total External Fragmentation</span>
+          </div>
+        </div>
+
+        <div class="viz-card">
+          <p class="card-label">Memory Block Allocation</p>
+          <div class="mem-grid" id="mem-grid">
+            <span style="font-size:0.8rem; color:var(--muted);">Add blocks and run the calculator.</span>
+          </div>
+        </div>
+        
+        <div class="viz-card terminal-card">
+          <div class="terminal-header">
+            <p class="card-label">System Log</p>
+          </div>
+          <div class="terminal" id="terminal-log">
+            <div class="log-muted">&gt; Ready.</div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

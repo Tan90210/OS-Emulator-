@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Page Replacement — OS Emulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Specific overrides for Page Replacement */
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+    .pr-table {
+      border-collapse: separate;
+      border-spacing: 4px;
+    }
+    .pr-table th, .pr-table td {
+      width: 40px;
+      height: 40px;
+      text-align: center;
+      vertical-align: middle;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 6px;
+    }
+    .pr-ref {
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      font-size: 0.9rem;
+    }
+    .pr-cell {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      transition: all 0.2s;
+    }
+    .pr-cell.filled {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent-strong);
+    }
+    .pr-cell.fault {
+      animation: flash-red 0.5s ease;
+    }
+    .pr-cell.hit {
+      animation: flash-green 0.5s ease;
+    }
+    .pr-status {
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+    .status-fault { color: var(--danger); }
+    .status-hit { color: var(--safe); }
+    
+    @keyframes flash-red {
+      0% { background: var(--danger); color: white; transform: scale(1.1); }
+      100% { background: var(--accent-soft); color: var(--accent-strong); transform: scale(1); }
+    }
+    @keyframes flash-green {
+      0% { background: var(--safe); color: white; transform: scale(1.1); }
+      100% { background: var(--accent-soft); color: var(--accent-strong); transform: scale(1); }
+    }
+
+    .algo-select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-soft); font-weight: 600; outline: none; margin-bottom: 10px; }
+    .algo-select:focus { border-color: var(--accent); }
+    
+    .stat-box { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: var(--panel-soft); border: 1px solid var(--line); border-radius: var(--radius); align-items: center; justify-content: center; }
+    .stat-val { font-size: 1.4rem; font-weight: 900; color: var(--accent); }
+    .stat-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="nav-left">
+      <p class="eyebrow"><a href="../index.html" style="color:inherit;text-decoration:none;">← Dashboard</a></p>
+      <h1>Page Replacement</h1>
+    </div>
+    <span class="nav-badge" id="nav-label">MODULE_07</span>
+  </nav>
+
+  <!-- ── WORKSPACE ── -->
+  <div class="workspace">
+
+    <!-- LEFT: config -->
+    <aside class="config-panel">
+
+      <section class="config-section">
+        <p class="section-label">Algorithm Selection</p>
+        <select class="algo-select" id="algo-select">
+          <option value="FIFO">First In First Out (FIFO)</option>
+          <option value="LRU">Least Recently Used (LRU)</option>
+          <option value="LFU">Least Frequently Used (LFU)</option>
+          <option value="SECOND_CHANCE">Second Chance (Clock)</option>
+          <option value="OPTIMAL">Optimal</option>
+        </select>
+      </section>
+
+      <section class="config-section">
+        <div class="count-row">
+          <div class="count-block" style="width: 100%;">
+            <span class="count-label">Number of Frames</span>
+            <div class="count-ctrl" style="justify-content: center; width: 100%;">
+              <button class="count-btn" id="frame-dec">−</button>
+              <strong class="count-val" id="frame-count">3</strong>
+              <button class="count-btn" id="frame-inc">+</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Reference String</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <input type="text" id="ref-string" class="edge-input" placeholder="e.g. 7, 0, 1, 2, 0, 3" style="width:100%; text-align:left; padding:8px;" value="7,0,1,2,0,3,0,4,2,3,0,3,2">
+          <button class="ghost-btn" id="random-btn">Generate Random</button>
+        </div>
+      </section>
+
+      <section class="config-section">
+        <div class="btn-stack">
+          <button class="primary-btn anim-btn" id="run-btn">▶ Run Simulation</button>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- RIGHT: visualization -->
+    <main class="viz-panel">
+
+      <header class="viz-topbar">
+        <div>
+          <p class="eyebrow">Visualization</p>
+          <h2 id="viz-title">First In First Out (FIFO)</h2>
+        </div>
+        <span class="status-badge" id="sim-status">IDLE</span>
+      </header>
+
+      <div class="viz-body">
+        
+        <!-- Statistics Overview -->
+        <div class="viz-row" style="grid-template-columns: 1fr 1fr 1fr;">
+          <div class="stat-box">
+            <span class="stat-val" id="stat-faults" style="color:var(--danger)">0</span>
+            <span class="stat-label">Page Faults</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-hits" style="color:var(--safe)">0</span>
+            <span class="stat-label">Page Hits</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-ratio" style="color:var(--accent)">0%</span>
+            <span class="stat-label">Hit Ratio</span>
+          </div>
+        </div>
+
+        <!-- Frame Table -->
+        <div class="viz-card">
+          <p class="card-label">Frame Allocation Trace</p>
+          <div class="table-wrapper" id="table-container">
+            <span class="unallocated-text">Awaiting simulation run...</span>
+          </div>
+        </div>
+        
+        <!-- Detailed Log -->
+        <div class="viz-card terminal-card">
+          <div class="terminal-header">
+            <p class="card-label">Replacement Log</p>
+          </div>
+          <div class="terminal" id="terminal-log">
+            <div class="log-muted">&gt; Ready.</div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

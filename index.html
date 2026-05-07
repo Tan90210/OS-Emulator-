@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OS Emulator Dashboard</title>
+  <meta name="description" content="Interactive Operating Systems Simulator for CS257."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="nav-left">
+      <p class="eyebrow">CS257 Lab Project</p>
+      <h1>OS Emulator Suite</h1>
+    </div>
+    <span class="nav-badge">v1.0.0</span>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <header class="hero">
+    <h2>Interactive Operating Systems Simulators</h2>
+    <p>Select a module below to explore algorithms, visualizations, and resource management strategies.</p>
+  </header>
+
+  <!-- ── DASHBOARD GRID ── -->
+  <main class="dashboard-container">
+    
+    <!-- Group 1: Process Management -->
+    <section class="module-group">
+      <h3 class="group-title">Process Management</h3>
+      <div class="grid">
+        <a href="system-calls/index.html" class="module-card">
+          <div class="card-icon">⚡</div>
+          <h4>System Calls</h4>
+          <p>Simulate fork, exec, wait, and process lifecycle events.</p>
+        </a>
+        <a href="cpu-scheduling/index.html" class="module-card">
+          <div class="card-icon">⏱️</div>
+          <h4>CPU Scheduling</h4>
+          <p>FCFS, SJF, Round Robin, Priority with dynamic Gantt charts.</p>
+        </a>
+        <a href="process-sync/index.html" class="module-card">
+          <div class="card-icon">🔄</div>
+          <h4>Process Synchronization</h4>
+          <p>Producer-Consumer, Reader-Writer, and Dining Philosophers.</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- Group 2: Deadlocks -->
+    <section class="module-group">
+      <h3 class="group-title">Deadlocks</h3>
+      <div class="grid">
+        <a href="deadlock/index.html" class="module-card accent-card">
+          <div class="card-icon">🔒</div>
+          <h4>Deadlocks</h4>
+          <p>RAG Cycle Detection and Banker's Algorithm safety checks.</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- Group 3: Memory Management -->
+    <section class="module-group">
+      <h3 class="group-title">Memory Management</h3>
+      <div class="grid">
+        <a href="memory-management/index.html" class="module-card">
+          <div class="card-icon">🧠</div>
+          <h4>Memory Management</h4>
+          <p>Logical to physical address translation using paging.</p>
+        </a>
+        <a href="memory-allocation/index.html" class="module-card">
+          <div class="card-icon">🧩</div>
+          <h4>Contiguous Allocation</h4>
+          <p>First-Fit, Best-Fit, and Worst-Fit memory block simulation.</p>
+        </a>
+        <a href="page-replacement/index.html" class="module-card">
+          <div class="card-icon">📄</div>
+          <h4>Page Replacement</h4>
+          <p>FIFO, LRU, and Optimal algorithms with fault tracking.</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- Group 4: Storage Management -->
+    <section class="module-group">
+      <h3 class="group-title">Storage Management</h3>
+      <div class="grid">
+        <a href="disk-scheduling/index.html" class="module-card">
+          <div class="card-icon">💿</div>
+          <h4>Disk Scheduling</h4>
+          <p>FCFS, SSTF, SCAN, C-SCAN, and LOOK disk head movement.</p>
+        </a>
+        <a href="file-allocation/index.html" class="module-card">
+          <div class="card-icon">📁</div>
+          <h4>File Allocation</h4>
+          <p>Contiguous, Linked, and Indexed block allocation visualization.</p>
+        </a>
+        <a href="file-organization/index.html" class="module-card">
+          <div class="card-icon">🗂️</div>
+          <h4>File Organization</h4>
+          <p>Single-level, Two-level, and Tree-structured directory graphs.</p>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

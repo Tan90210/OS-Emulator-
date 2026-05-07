@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>File Allocation — OS Emulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Specific overrides for File Allocation */
+    .algo-select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-soft); font-weight: 600; outline: none; margin-bottom: 10px; }
+    .algo-select:focus { border-color: var(--accent); }
+    
+    .disk-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .disk-block {
+      aspect-ratio: 1;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--muted);
+      position: relative;
+      transition: all 0.2s;
+    }
+    .disk-block.allocated {
+      border-color: var(--accent);
+      color: var(--accent-strong);
+    }
+    .disk-block.index {
+      border-color: var(--warn);
+      color: var(--warn);
+    }
+    .block-id {
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      font-size: 0.55rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .block-ptr {
+      position: absolute;
+      bottom: 2px;
+      font-size: 0.6rem;
+      color: inherit;
+    }
+    
+    .file-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--panel); border: 1px solid var(--line);
+      padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;
+      font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .file-tag .color-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    
+    .terminal-card { margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="nav-left">
+      <p class="eyebrow"><a href="../index.html" style="color:inherit;text-decoration:none;">← Dashboard</a></p>
+      <h1>File Allocation Simulator</h1>
+    </div>
+    <span class="nav-badge" id="nav-label">MODULE_09</span>
+  </nav>
+
+  <!-- ── WORKSPACE ── -->
+  <div class="workspace">
+
+    <!-- LEFT: config -->
+    <aside class="config-panel">
+
+      <section class="config-section">
+        <p class="section-label">Allocation Method</p>
+        <select class="algo-select" id="algo-select">
+          <option value="CONTIGUOUS">Contiguous Allocation</option>
+          <option value="LINKED">Linked Allocation</option>
+          <option value="INDEXED">Indexed Allocation</option>
+        </select>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Disk Storage</p>
+        <div class="count-row">
+          <div class="count-block" style="width: 100%;">
+            <span class="count-label">Total Blocks</span>
+            <div class="count-ctrl" style="justify-content: center; width: 100%;">
+              <button class="count-btn" id="block-dec">−</button>
+              <strong class="count-val" id="block-count">64</strong>
+              <button class="count-btn" id="block-inc">+</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Files</p>
+        <div class="edge-row" style="margin-bottom: 8px;">
+          <input type="text" id="file-name" class="edge-input" placeholder="File Name" style="flex:1;">
+          <input type="number" id="file-size" class="edge-input" placeholder="Blocks" min="1" style="flex:1; max-width:80px;">
+          <button class="add-btn req-add-btn" id="add-file-btn" style="background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent);">Add</button>
+        </div>
+        <div class="tag-wrap" id="file-tags" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </section>
+
+      <section class="config-section">
+        <div class="btn-stack">
+          <button class="ghost-btn" id="clear-btn" style="color:var(--danger); border-color:var(--danger-border);">Clear All</button>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- RIGHT: visualization -->
+    <main class="viz-panel">
+
+      <header class="viz-topbar">
+        <div>
+          <p class="eyebrow">Visualization</p>
+          <h2 id="viz-title">Contiguous Allocation</h2>
+        </div>
+        <span class="status-badge" id="sim-status" style="color:var(--safe)">READY</span>
+      </header>
+
+      <div class="viz-body">
+        
+        <!-- Disk Grid -->
+        <div class="viz-card">
+          <p class="card-label">Disk Blocks</p>
+          <div class="disk-grid" id="disk-grid">
+            <!-- Blocks injected via JS -->
+          </div>
+        </div>
+        
+        <!-- Detailed Log -->
+        <div class="viz-card terminal-card">
+          <div class="terminal-header">
+            <p class="card-label">Directory Structure / Allocation Log</p>
+          </div>
+          <div class="terminal" id="terminal-log">
+            <div class="log-muted">&gt; Ready for allocation.</div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

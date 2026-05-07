@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Memory Allocation — OS Emulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Specific overrides for Memory Allocation */
+    .mem-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .mem-block {
+      display: flex;
+      flex-direction: column;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel-soft);
+      overflow: hidden;
+      width: 120px;
+      min-height: 140px;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .mem-header {
+      background: var(--line);
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-align: center;
+      padding: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .mem-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      background: #f8fafc;
+    }
+    .mem-allocated {
+      background: var(--accent-soft);
+      border-top: 2px solid var(--accent);
+      color: var(--accent-strong);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 800;
+      transition: height 0.3s ease;
+      min-height: 20px;
+    }
+    .mem-frag {
+      font-size: 0.65rem;
+      color: var(--warn);
+      text-align: center;
+      padding: 4px 0;
+      font-weight: 700;
+    }
+    .unallocated-text {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    
+    .proc-queue {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      min-height: 50px;
+      padding: 10px;
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      background: var(--panel-soft);
+    }
+    .proc-chip {
+      background: var(--panel);
+      border: 1px solid var(--accent);
+      color: var(--accent-strong);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      animation: popIn 0.3s ease forwards;
+    }
+    .proc-chip.failed {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: var(--danger-soft);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .algo-select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-soft); font-weight: 600; outline: none; margin-bottom: 10px; }
+    .algo-select:focus { border-color: var(--accent); }
+    
+    .stat-box { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: var(--panel-soft); border: 1px solid var(--line); border-radius: var(--radius); align-items: center; justify-content: center; }
+    .stat-val { font-size: 1.4rem; font-weight: 900; color: var(--accent); }
+    .stat-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="nav-left">
+      <p class="eyebrow"><a href="../index.html" style="color:inherit;text-decoration:none;">← Dashboard</a></p>
+      <h1>Contiguous Memory Allocation</h1>
+    </div>
+    <span class="nav-badge" id="nav-label">MODULE_06</span>
+  </nav>
+
+  <!-- ── WORKSPACE ── -->
+  <div class="workspace">
+
+    <!-- LEFT: config -->
+    <aside class="config-panel">
+
+      <section class="config-section">
+        <p class="section-label">Algorithm Selection</p>
+        <select class="algo-select" id="algo-select">
+          <option value="FIRST">First Fit</option>
+          <option value="BEST">Best Fit</option>
+          <option value="WORST">Worst Fit</option>
+        </select>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Memory Blocks (Partitions)</p>
+        <div class="edge-row" style="margin-bottom: 8px;">
+          <input type="number" id="block-size" class="edge-input" placeholder="Size" style="flex:1;">
+          <button class="add-btn req-add-btn" id="add-block-btn" style="background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent);">Add Block</button>
+        </div>
+        <div class="tag-wrap" id="block-tags"></div>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Process Requests</p>
+        <div class="edge-row" style="margin-bottom: 8px;">
+          <input type="number" id="proc-size" class="edge-input" placeholder="Size" style="flex:1;">
+          <button class="add-btn alloc-add-btn" id="add-proc-btn">Add Process</button>
+        </div>
+        <div class="tag-wrap" id="proc-tags"></div>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Presets</p>
+        <div class="preset-stack">
+          <button class="preset-btn safe-preset" id="preset-1">Load Standard Preset</button>
+          <button class="preset-btn ghost-preset" id="clear-btn" style="color:var(--danger); border-color:var(--danger-border);">Clear All</button>
+        </div>
+      </section>
+
+      <section class="config-section">
+        <div class="btn-stack">
+          <button class="primary-btn anim-btn" id="run-btn">▶ Allocate Memory</button>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- RIGHT: visualization -->
+    <main class="viz-panel">
+
+      <header class="viz-topbar">
+        <div>
+          <p class="eyebrow">Visualization</p>
+          <h2 id="viz-title">First Fit Allocation</h2>
+        </div>
+        <span class="status-badge" id="sim-status">IDLE</span>
+      </header>
+
+      <div class="viz-body">
+        
+        <!-- Process Queue -->
+        <div class="viz-card">
+          <p class="card-label">Process Queue (Requests)</p>
+          <div class="proc-queue" id="proc-queue-display">
+            <span class="unallocated-text">No processes added.</span>
+          </div>
+        </div>
+
+        <!-- Statistics Overview -->
+        <div class="viz-row" style="grid-template-columns: 1fr 1fr 1fr;">
+          <div class="stat-box">
+            <span class="stat-val" id="stat-allocated">0/0</span>
+            <span class="stat-label">Allocated Processes</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-int-frag">0 KB</span>
+            <span class="stat-label">Total Internal Frag.</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-ext-frag">0 KB</span>
+            <span class="stat-label">Total External Frag.</span>
+          </div>
+        </div>
+
+        <!-- Memory Blocks -->
+        <div class="viz-card">
+          <p class="card-label">Main Memory (Physical RAM)</p>
+          <div class="mem-grid" id="mem-grid">
+            <span class="unallocated-text" style="width: 100%;">No memory blocks added.</span>
+          </div>
+        </div>
+        
+        <!-- Detailed Log -->
+        <div class="viz-card terminal-card">
+          <div class="terminal-header">
+            <p class="card-label">Allocation Log</p>
+          </div>
+          <div class="terminal" id="terminal-log">
+            <div class="log-muted">&gt; Ready for allocation.</div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

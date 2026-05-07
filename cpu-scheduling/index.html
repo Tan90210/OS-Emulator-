@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CPU Scheduling — OS Emulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Specific overrides for CPU Scheduling */
+    .gantt-chart {
+      display: flex;
+      height: 60px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--panel-soft);
+      margin-top: 10px;
+    }
+    .gantt-block {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-right: 1px solid var(--line);
+      position: relative;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--ink);
+      min-width: 30px;
+      transition: width 0.3s;
+    }
+    .gantt-block:last-child { border-right: none; }
+    .gantt-time {
+      position: absolute;
+      bottom: -22px;
+      right: -8px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .gantt-time.start { left: -4px; right: auto; }
+    .idle-block { background: repeating-linear-gradient(45deg, var(--panel-soft), var(--panel-soft) 10px, #e2e8f0 10px, #e2e8f0 20px); color: var(--muted); }
+    .process-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .process-table th { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--muted); text-align: left; padding: 8px; border-bottom: 2px solid var(--line); }
+    .process-table td { padding: 8px; border-bottom: 1px solid var(--line); font-size: 0.8rem; font-weight: 600; }
+    .algo-select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-soft); font-weight: 600; outline: none; margin-bottom: 10px; }
+    .algo-select:focus { border-color: var(--accent); }
+    .stat-box { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: var(--panel-soft); border: 1px solid var(--line); border-radius: var(--radius); align-items: center; justify-content: center; }
+    .stat-val { font-size: 1.4rem; font-weight: 900; color: var(--accent); }
+    .stat-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="nav-left">
+      <p class="eyebrow"><a href="../index.html" style="color:inherit;text-decoration:none;">← Dashboard</a></p>
+      <h1>CPU Scheduling Simulator</h1>
+    </div>
+    <span class="nav-badge" id="nav-label">MODULE_02</span>
+  </nav>
+
+  <!-- ── WORKSPACE ── -->
+  <div class="workspace">
+
+    <!-- LEFT: config -->
+    <aside class="config-panel">
+
+      <section class="config-section">
+        <p class="section-label">Algorithm Selection</p>
+        <select class="algo-select" id="algo-select">
+          <option value="FCFS">First Come First Serve (FCFS)</option>
+          <option value="SJF">Shortest Job First (SJF - Non Preemptive)</option>
+          <option value="SRTF">Shortest Remaining Time (SRTF)</option>
+          <option value="RR">Round Robin (RR)</option>
+          <option value="PRIORITY">Priority Scheduling (Non Preemptive)</option>
+        </select>
+        
+        <div id="tq-container" style="display:none; margin-top: 10px;">
+          <p class="section-label">Time Quantum</p>
+          <input type="number" id="time-quantum" class="edge-input" value="2" min="1" style="width: 100%;" />
+        </div>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Processes</p>
+        <div class="btn-stack" style="flex-direction: row; gap: 10px; margin-bottom: 10px;">
+          <button class="ghost-btn" id="add-process-btn">+ Add Process</button>
+          <button class="ghost-btn" id="clear-processes-btn" style="color:var(--danger); border-color:var(--danger-border);">Clear All</button>
+        </div>
+        
+        <div id="process-inputs" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Process input rows injected here -->
+        </div>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Presets</p>
+        <div class="preset-stack">
+          <button class="preset-btn safe-preset" id="preset-1">Load Preset 1 (Standard)</button>
+          <button class="preset-btn safe-preset" id="preset-2">Load Preset 2 (High Variance)</button>
+        </div>
+      </section>
+
+      <section class="config-section">
+        <div class="btn-stack">
+          <button class="primary-btn anim-btn" id="run-btn">▶ Run Simulation</button>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- RIGHT: visualization -->
+    <main class="viz-panel">
+
+      <header class="viz-topbar">
+        <div>
+          <p class="eyebrow">Visualization</p>
+          <h2 id="viz-title">First Come First Serve (FCFS)</h2>
+        </div>
+        <span class="status-badge" id="sim-status">IDLE</span>
+      </header>
+
+      <div class="viz-body">
+        
+        <!-- Gantt Chart -->
+        <div class="viz-card">
+          <p class="card-label">Gantt Chart</p>
+          <div class="gantt-chart" id="gantt-chart">
+            <div style="padding: 10px; color: var(--muted); font-size: 0.8rem; width: 100%; text-align: center; align-self: center;">
+              Awaiting simulation run...
+            </div>
+          </div>
+          <div style="height: 20px;"></div> <!-- Spacer for time labels -->
+        </div>
+
+        <!-- Statistics Overview -->
+        <div class="viz-row">
+          <div class="stat-box">
+            <span class="stat-val" id="avg-wt">0.0</span>
+            <span class="stat-label">Avg Waiting Time</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="avg-tat">0.0</span>
+            <span class="stat-label">Avg Turnaround Time</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="cpu-util">0%</span>
+            <span class="stat-label">CPU Utilization</span>
+          </div>
+        </div>
+
+        <!-- Detailed Results Table -->
+        <div class="viz-card">
+          <p class="card-label">Detailed Results</p>
+          <table class="process-table" id="results-table">
+            <thead>
+              <tr>
+                <th>Process</th>
+                <th>Arrival</th>
+                <th>Burst</th>
+                <th>Priority</th>
+                <th>Completion</th>
+                <th>Turnaround</th>
+                <th>Waiting</th>
+              </tr>
+            </thead>
+            <tbody id="results-body">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--muted);">No data available</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

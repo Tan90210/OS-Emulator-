@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Disk Scheduling — OS Emulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Specific overrides for Disk Scheduling */
+    .algo-select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-soft); font-weight: 600; outline: none; margin-bottom: 10px; }
+    .algo-select:focus { border-color: var(--accent); }
+    
+    .stat-box { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: var(--panel-soft); border: 1px solid var(--line); border-radius: var(--radius); align-items: center; justify-content: center; }
+    .stat-val { font-size: 1.4rem; font-weight: 900; color: var(--accent); }
+    .stat-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--muted); }
+    
+    .canvas-container {
+      width: 100%;
+      height: 400px;
+      position: relative;
+      background: var(--bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="nav-left">
+      <p class="eyebrow"><a href="../index.html" style="color:inherit;text-decoration:none;">← Dashboard</a></p>
+      <h1>Disk Scheduling Simulator</h1>
+    </div>
+    <span class="nav-badge" id="nav-label">MODULE_08</span>
+  </nav>
+
+  <!-- ── WORKSPACE ── -->
+  <div class="workspace">
+
+    <!-- LEFT: config -->
+    <aside class="config-panel">
+
+      <section class="config-section">
+        <p class="section-label">Algorithm Selection</p>
+        <select class="algo-select" id="algo-select">
+          <option value="FCFS">First Come First Serve (FCFS)</option>
+          <option value="SSTF">Shortest Seek Time First (SSTF)</option>
+          <option value="SCAN">SCAN (Elevator)</option>
+          <option value="CSCAN">C-SCAN (Circular SCAN)</option>
+          <option value="LOOK">LOOK</option>
+          <option value="CLOOK">C-LOOK (Circular LOOK)</option>
+        </select>
+        
+        <div id="dir-container" style="display:none; margin-top: 10px;">
+          <p class="section-label">Initial Direction</p>
+          <select class="algo-select" id="direction-select">
+            <option value="up">Towards Larger Cylinder</option>
+            <option value="down">Towards Smaller Cylinder</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Disk Parameters</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <label style="font-size:0.8rem; font-weight:600; color:var(--muted)">Max Cylinder Count</label>
+          <input type="number" id="max-cyl" class="edge-input" value="199" min="10" style="width:100%;">
+          
+          <label style="font-size:0.8rem; font-weight:600; color:var(--muted); margin-top:5px;">Initial Head Position</label>
+          <input type="number" id="init-head" class="edge-input" value="50" min="0" style="width:100%;">
+        </div>
+      </section>
+
+      <section class="config-section">
+        <p class="section-label">Request Queue</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <input type="text" id="req-queue" class="edge-input" placeholder="e.g. 82, 170, 43, 140, 24" value="82, 170, 43, 140, 24, 16, 190" style="width:100%; text-align:left; padding:8px;">
+          <button class="ghost-btn" id="random-btn">Generate Random</button>
+        </div>
+      </section>
+
+      <section class="config-section">
+        <div class="btn-stack">
+          <button class="primary-btn anim-btn" id="run-btn">▶ Run Simulation</button>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- RIGHT: visualization -->
+    <main class="viz-panel">
+
+      <header class="viz-topbar">
+        <div>
+          <p class="eyebrow">Visualization</p>
+          <h2 id="viz-title">First Come First Serve (FCFS)</h2>
+        </div>
+        <span class="status-badge" id="sim-status">IDLE</span>
+      </header>
+
+      <div class="viz-body">
+        
+        <!-- Statistics Overview -->
+        <div class="viz-row" style="grid-template-columns: 1fr 1fr;">
+          <div class="stat-box">
+            <span class="stat-val" id="stat-total">0</span>
+            <span class="stat-label">Total Head Movement</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-avg">0.0</span>
+            <span class="stat-label">Average Seek Time</span>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="viz-card">
+          <p class="card-label">Seek Sequence Graph</p>
+          <div class="canvas-container">
+            <canvas id="diskCanvas"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
